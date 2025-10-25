@@ -1,35 +1,31 @@
-import { describe, it, expect } from "vitest";
-import { Name } from "../../../src/adap-b01/names/Name";
+export class Name {
+  private parts: string[];
+  private delimiter: string;
 
-describe("Basic initialization tests", () => {
-  it("test construction 1", () => {
-    let n: Name = new Name(["oss", "cs", "fau", "de"]);
-    expect(n.asString()).toBe("oss.cs.fau.de");
-  });
-});
+  // @methodtype constructor
+  constructor(parts: string[] = [], delimiter: string = ".") {
+    this.parts = [...parts];          
+    this.delimiter = delimiter; 
+  }
 
-describe("Basic function tests", () => {
-  it("test insert", () => {
-    let n: Name = new Name(["oss", "fau", "de"]);
-    n.insert(1, "cs");
-    expect(n.asString()).toBe("oss.cs.fau.de");
-  });
-});
+  // @methodtype get-method
+  public asString(): string {
+// Combines all elements
+// separating them with the specified delimiter.
+    return this.parts.join(this.delimiter);
+  }
 
-describe("Delimiter function tests", () => {
-  it("test insert", () => {
-    let n: Name = new Name(["oss", "fau", "de"], '#');
-    n.insert(1, "cs");
-    expect(n.asString()).toBe("oss#cs#fau#de");
-  });
-});
+  // @methodtype set-method
+  public append(part: string): void {
+    this.parts.push(part);
+  }
 
-describe("Escape character extravaganza", () => {
-  it("test escape and delimiter boundary conditions", () => {
-    // Original name string = "oss.cs.fau.de"
-    let n: Name = new Name(["oss.cs.fau.de"], '#');
-    expect(n.asString()).toBe("oss.cs.fau.de");
-    n.append("people");
-    expect(n.asString()).toBe("oss.cs.fau.de#people");
-  });
-});
+  // @methodtype set-method
+  public insert(index: number, part: string): void {
+ // Inserts a new element
+// adjusting the index if it's outside valid bounds.
+    if (index < 0) index = 0;
+    if (index > this.parts.length) index = this.parts.length;
+    this.parts.splice(index, 0, part);
+  }
+}
