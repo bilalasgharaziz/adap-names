@@ -1,29 +1,17 @@
-import { Printable } from "../common/Printable";
+import { Printable, DEFAULT_DELIMITER, ESCAPE_CHARACTER } from "../common/Printable";
 
 /**
  * A name is a sequence of string components separated by a delimiter character.
  * Special characters within the string may need masking, if they are to appear verbatim.
  * There are only two special characters, the delimiter character and the escape character.
  * The escape character can't be set, the delimiter character can.
- * 
- * Homogenous name examples
- * 
- * "oss.cs.fau.de" is a name with four name components and the delimiter character '.'.
- * "///" is a name with four empty components and the delimiter character '/'.
- * "Oh\.\.\." is a name with one component, if the delimiter character is '.'.
  */
 export interface Name extends Printable {
 
-    /**
-     * Returns true, if number of components == 0; else false
-     */
-    isEmpty(): boolean;
-
-    /** 
-     * Returns number of components in Name instance
-     */
+    /** Returns number of components in this name */
     getNoComponents(): number;
 
+    /** Returns component i (0-based). Throws on out-of-bounds. */
     getComponent(i: number): string;
 
     /** Expects that new Name component c is properly masked */
@@ -35,8 +23,9 @@ export interface Name extends Printable {
     /** Expects that new Name component c is properly masked */
     append(c: string): void;
 
+    /** Removes component at i (no-op if out of bounds) */
     remove(i: number): void;
-    
+
+    /** Appends all components of other to this */
     concat(other: Name): void;
-    
 }
