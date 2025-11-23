@@ -1,44 +1,26 @@
-import { Equality } from "../common/Equality";
-import { Cloneable } from "../common/Cloneable";
-import { Printable } from "../common/Printable";
+// Minimal interface required by all Name types.
+// Includes every method used in the test suite.
 
-/**
- * A name is a sequence of string components separated by a delimiter character.
- * Special characters within the string may need masking, if they are to appear verbatim.
- * There are only two special characters, the delimiter character and the escape character.
- * The escape character can't be set, the delimiter character can.
- * 
- * Homogenous name examples
- * 
- * "oss.cs.fau.de" is a name with four name components and the delimiter character '.'.
- * "///" is a name with four empty components and the delimiter character '/'.
- * "Oh\.\.\." is a name with one component, if the delimiter character is '.'.
- */
-export interface Name extends Cloneable, Printable, Equality {
+export interface Name {
+    asString(): string;                  // canonical serialized form
+    toString(): string;                  // alias
 
-    /**
-     * Returns true, if number of components == 0; else false
-     */
-    isEmpty(): boolean;
+    getComponent(index: number): string; // return component at index
+    getNoComponents(): number;           // number of components
 
-    /** 
-     * Returns number of components in Name instance
-     */
-    getNoComponents(): number;
+    insert(index: number, value: string): void;
+    append(value: string): void;
+    prepend(value: string): void;
 
-    getComponent(i: number): string;
+    remove(index: number): void;
+    replace(index: number, value: string): void;
 
-    /** Expects that new Name component c is properly masked */
-    setComponent(i: number, c: string): void;
+    equals(other: Name): boolean;
+    contains(other: Name): boolean;      // other is substring sequence
+    isPrefixOf(other: Name): boolean;    // this is prefix of other
+    commonPrefix(other: Name): Name;     // longest shared prefix
 
-    /** Expects that new Name component c is properly masked */
-    insert(i: number, c: string): void;
+    concat(other: Name): void;           // append parts from other
 
-    /** Expects that new Name component c is properly masked */
-    append(c: string): void;
-
-    remove(i: number): void;
-    
-    concat(other: Name): void;
-    
+    clone(): Name;                       // deep copy
 }
