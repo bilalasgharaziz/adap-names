@@ -1,52 +1,58 @@
-import { Name } from "../names/Name";
+import { IllegalArgumentException } from "../common/IllegalArgumentException";
 import { Directory } from "./Directory";
 
 export class Node {
 
-    protected baseName: string = "";
+    protected baseName: string;
     protected parentNode: Directory;
 
     constructor(bn: string, pn: Directory) {
-        this.doSetBaseName(bn);
-        this.parentNode = pn; // why oh why do I have to set this
-        this.initialize(pn);
-    }
+        this.assertValidBaseNameAsPrecondition(bn);
+        this.assertValidParentAsPrecondition(pn);
 
-    protected initialize(pn: Directory): void {
+        this.baseName = bn;
         this.parentNode = pn;
-        this.parentNode.addChildNode(this);
     }
 
-    public move(to: Directory): void {
-        this.parentNode.removeChildNode(this);
-        to.addChildNode(this);
-        this.parentNode = to;
-    }
-
-    public getFullName(): Name {
-        const result: Name = this.parentNode.getFullName();
-        result.append(this.getBaseName());
-        return result;
-    }
-
+    /**
+     * Returns the base name (last component) of this node.
+     */
     public getBaseName(): string {
-        return this.doGetBaseName();
-    }
-
-    protected doGetBaseName(): string {
         return this.baseName;
     }
 
-    public rename(bn: string): void {
-        this.doSetBaseName(bn);
-    }
-
-    protected doSetBaseName(bn: string): void {
-        this.baseName = bn;
-    }
-
+    /**
+     * Returns the parent directory.
+     */
     public getParentNode(): Directory {
         return this.parentNode;
     }
 
+    public rename(bn: string): void {
+        this.assertValidBaseNameAsPrecondition(bn);
+        this.baseName = bn;
+    }
+
+
+    protected assertValidBaseNameAsPrecondition(bn: string): void {
+        IllegalArgumentException.assert(
+            bn !== null && bn !== undefined,
+            "base name must not be null or undefined"
+        );
+        IllegalArgumentException.assert(
+            bn.length > 0,
+            "base name must not be empty"
+        );
+        IllegalArgumentException.assert(
+            !bn.includes("/"),
+            "base name must not contain '/'"
+        );
+    }
+
+    protected assertValidParentAsPrecondition(pn: Directory): void {
+        IllegalArgumentException.assert(
+            pn !== null && pn !== undefined,
+            "parent directory must not be null or undefined"
+        );
+    }
 }
