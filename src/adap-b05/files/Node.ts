@@ -1,32 +1,47 @@
+// src/adap-b05/files/Node.ts
 import { IllegalArgumentException } from "../common/IllegalArgumentException";
 import { InvalidStateException } from "../common/InvalidStateException";
-
+import { ServiceFailureException } from "../common/ServiceFailureException";
 import { Name } from "../names/Name";
-import { Directory } from "./Directory";
 
+/**
+ * Base Node class.
+ *
+ * Important: avoid runtime imports of Directory/RootNode here to prevent
+ * circular import issues. Instead, subclasses override the
+ * isDirectory(), isRoot() and getChildNodes() hooks.
+ */
 export class Node {
 
     protected baseName: string = "";
-    protected parentNode: Directory;
+    protected parentNode: any; // keep loose type to avoid circular type imports
 
-    constructor(bn: string, pn: Directory) {
+    constructor(bn: string, pn: any) {
         this.doSetBaseName(bn);
-        this.parentNode = pn; // why oh why do I have to set this
+        this.parentNode = pn;
         this.initialize(pn);
     }
 
-    protected initialize(pn: Directory): void {
+    protected initialize(pn: any): void {
         this.parentNode = pn;
-        this.parentNode.addChildNode(this);
+        // Register with parent if parent exposes addChildNode
+        if (this.parentNode && typeof (this.parentNode as any).addChildNode === "function") {
+            (this.parentNode as any).addChildNode(this);
+        }
     }
 
-    public move(to: Directory): void {
-        this.parentNode.removeChildNode(this);
-        to.addChildNode(this);
+    public move(to: any): void {
+        if (this.parentNode && typeof (this.parentNode as any).removeChildNode === "function") {
+            (this.parentNode as any).removeChildNode(this);
+        }
+        if (to && typeof (to as any).addChildNode === "function") {
+            (to as any).addChildNode(this);
+        }
         this.parentNode = to;
     }
 
     public getFullName(): Name {
+        // delegate to parent to build full name; assume parent provides getFullName()
         const result: Name = this.parentNode.getFullName();
         result.append(this.getBaseName());
         return result;
@@ -40,24 +55,87 @@ export class Node {
         return this.baseName;
     }
 
-    public rename(bn: string): void {
-        this.doSetBaseName(bn);
-    }
-
     protected doSetBaseName(bn: string): void {
         this.baseName = bn;
     }
 
-    public getParentNode(): Directory {
+    public rename(newName: string): void {
+        if (newName === null || newName === undefined) {
+            throw new IllegalArgumentException("name must be provided");
+        }
+        this.doSetBaseName(newName);
+    }
+
+    public getParentNode(): any {
         return this.parentNode;
     }
 
     /**
-     * Returns all nodes in the tree that match bn
-     * @param bn basename of node being searched for
+     * Hook: is this node a directory? subclasses should override.
+     */
+    public isDirectory(): boolean {
+        return false;
+    }
+
+    /**
+     * Hook: is this node the root node? subclasses (RootNode) override.
+     */
+    public isRoot(): boolean {
+        return false;
+    }
+
+    /**
+     * Hook: return child nodes for traversal.
+     * Default: no children (empty set). Directory will override.
+     */
+    public getChildNodes(): Set<Node> {
+        return new Set<Node>();
+    }
+
+    /**
+     * findNodes: depth-first search for nodes whose base name equals bn.
+     * - If reading a node's base name throws InvalidStateException, wrap it in a ServiceFailureException.
      */
     public findNodes(bn: string): Set<Node> {
-        throw new Error("needs implementation or deletion");
+        if (bn === null || bn === undefined) {
+            throw new IllegalArgumentException("basename must be provided");
+        }
+
+        const result = new Set<Node>();
+        const stack: Node[] = [this];
+
+        while (stack.length > 0) {
+            const node = stack.pop() as Node;
+
+            // attempt to read base name; wrap InvalidStateException into ServiceFailureException
+            let name: string;
+            try {
+                name = node.getBaseName();
+                // treat empty name as invalid state, except for RootNode
+                if ((name === "" || name === undefined || name === null) && !node.isRoot()) {
+                    throw new InvalidStateException("invalid base name");
+                }
+            } catch (err: any) {
+                if (err instanceof InvalidStateException) {
+                    throw new ServiceFailureException("service failure while reading node", err);
+                }
+                throw err;
+            }
+
+            if (name === bn) {
+                result.add(node);
+            }
+
+            // if directory, push children using hook (no runtime import)
+            if (node.isDirectory()) {
+                const children = node.getChildNodes();
+                for (const c of children) {
+                    stack.push(c);
+                }
+            }
+        }
+
+        return result;
     }
 
 }
